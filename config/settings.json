@@ -1,0 +1,94 @@
+{
+  "selected_provider": "gemini",
+  "source_language": "ja",
+  "target_language": "vi",
+  "system_prompt": "",
+  "providers": {
+    "gemini": {
+      "api_key": "AQ.Ab8RN6LS2hw-SerLFlgluGhm3uUaYeujaj_-MF-sJ5M6SULVsQ",
+      "model": "gemini-3.5-flash-lite",
+      "base_url": "https://generativelanguage.googleapis.com"
+    },
+    "openai": {
+      "api_key": "",
+      "model": "gpt-4o-mini",
+      "base_url": "https://api.openai.com/v1"
+    },
+    "deepseek": {
+      "api_key": "",
+      "model": "deepseek-chat",
+      "base_url": "https://api.deepseek.com/v1"
+    },
+    "claude": {
+      "api_key": "",
+      "model": "claude-3-5-haiku-20241022",
+      "base_url": "https://api.anthropic.com/v1"
+    },
+    "groq": {
+      "api_key": "",
+      "model": "llama-3.3-70b-versatile",
+      "base_url": "https://api.groq.com/openai/v1"
+    },
+    "openrouter": {
+      "api_key": "",
+      "model": "google/gemini-2.0-flash-001",
+      "base_url": "https://openrouter.ai/api/v1"
+    },
+    "custom": {
+      "api_key": "",
+      "model": "default",
+      "base_url": ""
+    }
+  },
+  "hybrid_mode": true,
+  "offline_only": false,
+  "clipboard": {
+    "enabled": true,
+    "debounce_ms": 250
+  },
+  "ocr": {
+    "enabled": true,
+    "region": [
+      17,
+      27,
+      1275,
+      957
+    ],
+    "scan_interval_ms": 150,
+    "engine": "rapidocr"
+  },
+  "overlay": {
+    "geometry": [
+      1238,
+      11,
+      1150,
+      230
+    ],
+    "font_family": "Segoe UI",
+    "font_size": 18,
+    "font_weight": "bold",
+    "text_color": "#FFFFFF",
+    "outline_color": "#05050A",
+    "outline_width": 2,
+    "bg_color": "rgba(18, 20, 29, 0.85)",
+    "bg_opacity": 85,
+    "click_through": false,
+    "show_source_text": true,
+    "source_font_size": 13,
+    "source_text_color": "#A0A8C0"
+  },
+  "tts": {
+    "enabled": false,
+    "voice": "vi-VN-HoaiMyNeural",
+    "rate": "+0%",
+    "volume": "+0%"
+  },
+  "hotkeys": {
+    "toggle_click_through": "<ctrl>+<f1>",
+    "pause_resume": "<ctrl>+<f2>",
+    "select_ocr_region": "<ctrl>+<f3>",
+    "toggle_overlay_visibility": "<ctrl>+<f4>",
+    "replay_tts": "<ctrl>+<f5>"
+  },
+  "glossary": {}
+}

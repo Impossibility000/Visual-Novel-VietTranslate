@@ -1,0 +1,1 @@
+Remove Repeated Characters>Regex Filter>Copy to Clipboard>Extra Window>Extra Newlines>

@@ -1,0 +1,8 @@
+mở dòng nhập đường đẫn thư mục nhập python main.py
+
+2 cách:
+C1
+Vào giao diện chọn cặp ngôn ngữ tiếng anh, bấm vào kéo chọn vùng OCR và chọn khu vực cần dịch. Khi đã chọn bấm bắt đầu dịch sẽ dịch ra ở khung hiện phụ đề
+C2 
+Vào textractor chọn mở textractor 32bit
+Attact to game -> bấm vài click trong visual novel -> ở thanh trên cùng có mã là 0:0:FFF... console hay tương tự bấm vào dung mũi tên bầm xuống khi nào thấy đúng lời thoại trong visual novel -> quay lại AetherVN bấm bắt đầu dịch
