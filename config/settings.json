@@ -5,13 +5,8 @@
   "system_prompt": "",
   "providers": {
     "gemini": {
-<<<<<<< HEAD
-      "api_key": "AQ.Ab8RN6LS2hw-SerLFlgluGhm3uUaYeujaj_-MF-sJ5M6SULVsQ",
-      "model": "gemini-2.5-flash",
-=======
       "api_key": "",
-      "model": "gemini-3.5-flash-lite",
->>>>>>> bbb9271c997421600daf1f5eac6ec6bbc60f9a71
+      "model": "gemini-2.5-flash",
       "base_url": "https://generativelanguage.googleapis.com"
     },
     "openai": {

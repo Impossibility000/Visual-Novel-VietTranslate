@@ -1,0 +1,20 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest cache
+.pytest_cache/
+
+# User local settings (contains private API keys)
+# config/settings.json
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# OS files
+Thumbs.db
+Desktop.ini
+
