@@ -417,13 +417,12 @@ class OverlayWindow(QWidget):
         tgt_rect = rect.adjusted(14, y_offset, -14, -10)
         text_to_draw = self.translated_text + (" ▌" if self.is_streaming else "")
         
-        # Multi-angle anti-aliased outline kernel for zero halo artifacts
+        # 8-direction anti-aliased outline kernel (Cardinal + Diagonal)
+        # Optimal visual quality with 50% less CPU/GPU layout passes
         outline_rad = max(1.0, float(self.outline_width))
         subpixel_kernel = [
             (-1.0, 0.0), (1.0, 0.0), (0.0, -1.0), (0.0, 1.0),
-            (-0.707, -0.707), (0.707, -0.707), (-0.707, 0.707), (0.707, 0.707),
-            (-0.923, -0.382), (-0.382, -0.923), (0.382, -0.923), (0.923, -0.382),
-            (-0.923, 0.382), (-0.382, 0.923), (0.382, 0.923), (0.923, 0.382)
+            (-0.707, -0.707), (0.707, -0.707), (-0.707, 0.707), (0.707, 0.707)
         ]
         
         # Draw soft outline

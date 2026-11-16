@@ -22,7 +22,7 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "providers": {
         "gemini": {
             "api_key": "",
-            "model": "gemini-3.5-flash-lite",
+            "model": "gemini-2.5-flash",
             "base_url": "https://generativelanguage.googleapis.com"
         },
         "openai": {
@@ -103,6 +103,12 @@ class AppSettings:
     """Manages application persistent configuration."""
     
     def __init__(self, config_path: str = "config/settings.json"):
+        if not os.path.isabs(config_path) and not os.path.exists(config_path):
+            current_file_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.abspath(os.path.join(current_file_dir, "..", ".."))
+            alt_path = os.path.join(project_root, config_path)
+            if os.path.exists(alt_path) or config_path == "config/settings.json":
+                config_path = alt_path
         self.config_path = config_path
         self._settings = copy.deepcopy(DEFAULT_SETTINGS)
         self.load()

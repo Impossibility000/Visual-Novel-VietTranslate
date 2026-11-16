@@ -1,12 +1,12 @@
 {
   "selected_provider": "gemini",
-  "source_language": "ja",
+  "source_language": "en",
   "target_language": "vi",
   "system_prompt": "",
   "providers": {
     "gemini": {
       "api_key": "AQ.Ab8RN6LS2hw-SerLFlgluGhm3uUaYeujaj_-MF-sJ5M6SULVsQ",
-      "model": "gemini-3.5-flash-lite",
+      "model": "gemini-2.5-flash",
       "base_url": "https://generativelanguage.googleapis.com"
     },
     "openai": {
@@ -49,20 +49,20 @@
   "ocr": {
     "enabled": true,
     "region": [
-      17,
-      27,
-      1275,
-      957
+      11,
+      44,
+      1274,
+      958
     ],
     "scan_interval_ms": 150,
     "engine": "rapidocr"
   },
   "overlay": {
     "geometry": [
-      1238,
-      11,
-      1150,
-      230
+      1284,
+      22,
+      613,
+      371
     ],
     "font_family": "Segoe UI",
     "font_size": 18,
@@ -71,7 +71,7 @@
     "outline_color": "#05050A",
     "outline_width": 2,
     "bg_color": "rgba(18, 20, 29, 0.85)",
-    "bg_opacity": 85,
+    "bg_opacity": 91,
     "click_through": false,
     "show_source_text": true,
     "source_font_size": 13,

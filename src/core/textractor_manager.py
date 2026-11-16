@@ -9,7 +9,12 @@ class TextractorManager:
     """Manages built-in portable Textractor binaries and game attachment."""
     
     def __init__(self, base_dir: Optional[str] = None):
-        self.base_dir = base_dir or os.path.join(os.getcwd(), "tools", "Textractor", "Textractor")
+        if base_dir:
+            self.base_dir = os.path.abspath(base_dir)
+        else:
+            current_file_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.abspath(os.path.join(current_file_dir, "..", ".."))
+            self.base_dir = os.path.join(project_root, "tools", "Textractor", "Textractor")
         self._process: Optional[subprocess.Popen] = None
 
     def get_executable_path(self, arch: str = "x86") -> Optional[str]:
@@ -19,10 +24,14 @@ class TextractorManager:
         if os.path.exists(exe_path):
             return exe_path
         
-        # Fallback search
-        for root, dirs, files in os.walk(os.path.join(os.getcwd(), "tools")):
-            if "Textractor.exe" in files and arch in root:
-                return os.path.join(root, "Textractor.exe")
+        # Fallback search in project tools
+        current_file_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.abspath(os.path.join(current_file_dir, "..", ".."))
+        tools_dir = os.path.join(project_root, "tools")
+        if os.path.exists(tools_dir):
+            for root, dirs, files in os.walk(tools_dir):
+                if "Textractor.exe" in files and arch in root:
+                    return os.path.join(root, "Textractor.exe")
         return None
 
     def is_installed(self) -> bool:

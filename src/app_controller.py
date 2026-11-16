@@ -63,8 +63,42 @@ class AppController(QObject):
         self.ocr_timer.setInterval(self.settings.get("ocr", {}).get("scan_interval_ms", 350))
         self.ocr_timer.timeout.connect(self._on_ocr_timer_tick)
         
+        # Dedicated Async Worker Thread with Persistent Event Loop (enables HTTP Keep-Alive connection pooling)
+        self._async_loop = asyncio.new_event_loop()
+        self._async_thread = threading.Thread(target=self._run_async_loop, daemon=True)
+        self._async_thread.start()
+
+        app = QApplication.instance()
+        if app is not None:
+            app.aboutToQuit.connect(self.cleanup)
+
         self._wire_signals()
         self._setup_hotkeys()
+
+    def _run_async_loop(self):
+        asyncio.set_event_loop(self._async_loop)
+        self._async_loop.run_forever()
+
+    def cleanup(self):
+        """Clean shutdown of background services and HTTP connection pools."""
+        self.is_active = False
+        if hasattr(self, "ocr_timer") and self.ocr_timer.isActive():
+            self.ocr_timer.stop()
+        if hasattr(self, "clipboard_listener"):
+            self.clipboard_listener.stop()
+        if hasattr(self, "hotkey_manager"):
+            self.hotkey_manager.stop()
+        if hasattr(self, "overlay_window"):
+            self.overlay_window.close()
+        if hasattr(self, "backlog_window"):
+            self.backlog_window.close()
+        if hasattr(self, "_async_loop") and self._async_loop.is_running():
+            try:
+                future = asyncio.run_coroutine_threadsafe(self.translator.close(), self._async_loop)
+                future.result(timeout=1.5)
+            except Exception:
+                pass
+            self._async_loop.call_soon_threadsafe(self._async_loop.stop)
 
     def _wire_signals(self):
         # Cross-thread signals
@@ -148,6 +182,7 @@ class AppController(QObject):
             self.overlay_window.hide()
         else:
             self.overlay_window.show()
+            self.overlay_window.raise_()
 
     def toggle_backlog_visibility(self):
         if self.backlog_window.isVisible():
@@ -234,31 +269,43 @@ class AppController(QObject):
         self._is_translating = True
         self.overlay_window.update_text(source=cleaned, translated="", is_streaming=True)
         
-        # 5. Dispatch Async Translation
+        # 5. Dispatch Async Translation via persistent Event Loop
         src_lang = self.settings.get("source_language", "ja")
         tgt_lang = self.settings.get("target_language", "vi")
         context_str = self.context.get_formatted_context()
         glossary_str = self.glossary.format_prompt_instructions()
         provider = self.settings.get("selected_provider", "gemini")
 
-        threading.Thread(
-            target=self._run_async_translation,
-            args=(cleaned, provider, src_lang, tgt_lang, context_str, glossary_str),
-            daemon=True
-        ).start()
+        self._dispatch_translation(cleaned, provider, src_lang, tgt_lang, context_str, glossary_str)
+
+    def _dispatch_translation(self, text: str, provider: str, src_lang: str, tgt_lang: str, context: str, glossary: str):
+        async def _do_stream():
+            try:
+                accumulated = []
+                async for chunk in self.translator.translate_stream(text, provider, src_lang, tgt_lang, context, glossary):
+                    accumulated.append(chunk)
+                    self.sig_translation_chunk.emit(chunk)
+                
+                raw_translated = "".join(accumulated).strip()
+                full_translated = self.translator.sanitize_translation_output(raw_translated)
+                if full_translated and not full_translated.startswith("[Lỗi") and "Error" not in full_translated:
+                    cache_key = (text.strip(), src_lang, tgt_lang)
+                    if len(self.translator._cache) >= self.translator._max_cache_size:
+                        self.translator._cache.pop(next(iter(self.translator._cache)))
+                    self.translator._cache[cache_key] = full_translated
+                self.sig_translation_complete.emit(text, full_translated)
+            except Exception as e:
+                logger.error(f"Stream translation error: {e}")
+                self.sig_error.emit(str(e))
+
+        if hasattr(self, "_async_loop") and self._async_loop.is_running():
+            asyncio.run_coroutine_threadsafe(_do_stream(), self._async_loop)
+        else:
+            threading.Thread(target=lambda: asyncio.run(_do_stream()), daemon=True).start()
 
     def _run_async_translation(self, text: str, provider: str, src_lang: str, tgt_lang: str, context: str, glossary: str):
-        async def _do_stream():
-            accumulated = []
-            async for chunk in self.translator.translate_stream(text, provider, src_lang, tgt_lang, context, glossary):
-                accumulated.append(chunk)
-                self.sig_translation_chunk.emit(chunk)
-            
-            raw_translated = "".join(accumulated).strip()
-            full_translated = self.translator.sanitize_translation_output(raw_translated)
-            self.sig_translation_complete.emit(text, full_translated)
-
-        asyncio.run(_do_stream())
+        """Backwards compatibility helper."""
+        self._dispatch_translation(text, provider, src_lang, tgt_lang, context, glossary)
 
     @Slot(str, str)
     def _handle_translation_complete(self, source: str, translated: str):
@@ -328,20 +375,44 @@ class AppController(QObject):
         self.overlay_window.setGeometry(geom[0], geom[1], geom[2], geom[3])
 
     def _test_api_connection(self, provider: str):
-        def _test():
-            async def _run():
-                result = await self.translator.translate_full(
+        async def _run():
+            try:
+                res = await self.translator.translate_full(
                     text="こんにちは！これはテストです。",
                     provider=provider,
                     src_lang="ja",
-                    tgt_lang="vi"
+                    tgt_lang="vi",
+                    bypass_fallback=True
                 )
-                return result
-            
-            res = asyncio.run(_run())
-            QTimer.singleShot(0, lambda: QMessageBox.information(self.main_window, f"Kết Quả Test API ({provider.upper()})", f"Phản hồi từ AI:\n\n{res}"))
+            except Exception as e:
+                res = f"[Lỗi: {e}]"
+                
+            is_error = res.startswith("[Lỗi") or "Error" in res
+            if is_error:
+                title = f"Kiểm Tra API Thất Bại ({provider.upper()})"
+                msg = (
+                    f"❌ Không thể kết nối hoặc nhận phản hồi từ AI ({provider.upper()}).\n\n"
+                    f"Chi tiết thông báo:\n{res}\n\n"
+                    "Gợi ý kiểm tra:\n"
+                    "1. Kiểm tra mã API Key trong tab 'Nhà Cung Cấp AI'.\n"
+                    "2. Đảm bảo bạn đã bấm nút 'Lưu Cài Đặt' ở cuối trang sau khi dán key.\n"
+                    "3. Kiểm tra số dư / hạn mức (quota) trên trang quản lý API của nhà cung cấp."
+                )
+                icon = QMessageBox.Icon.Warning
+            else:
+                title = f"Kết Nối API Thành Công ({provider.upper()})"
+                msg = (
+                    f"✅ Đã kết nối và xác thực thành công tới {provider.upper()}!\n\n"
+                    f"Bản dịch thử nghiệm từ AI:\n\"{res}\""
+                )
+                icon = QMessageBox.Icon.Information
 
-        threading.Thread(target=_test, daemon=True).start()
+            QTimer.singleShot(0, lambda: QMessageBox(icon, title, msg, QMessageBox.StandardButton.Ok, self.main_window).exec())
+
+        if hasattr(self, "_async_loop") and self._async_loop.is_running():
+            asyncio.run_coroutine_threadsafe(_run(), self._async_loop)
+        else:
+            threading.Thread(target=lambda: asyncio.run(_run()), daemon=True).start()
 
     @Slot(str)
     def _handle_error(self, err_msg: str):

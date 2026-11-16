@@ -74,5 +74,36 @@ class TestTranslator(unittest.TestCase):
         res3 = AITranslator.sanitize_translation_output('"Đây là câu thoại."')
         self.assertEqual(res3, "Đây là câu thoại.")
 
+    def test_hybrid_token_optimization(self):
+        settings = AppSettings()
+        translator = AITranslator(settings=settings)
+        
+        std_sys = translator.build_system_prompt(src_lang="ja", tgt_lang="vi")
+        hybrid_sys = translator.build_system_prompt(src_lang="ja", tgt_lang="vi", local_draft="Xin chào")
+        
+        # Hybrid prompt should be significantly more compact than standard prompt
+        self.assertLess(len(hybrid_sys), len(std_sys))
+        self.assertIn("Local Draft", hybrid_sys)
+
+    def test_cache_and_bypass_fallback(self):
+        import asyncio
+        settings = AppSettings()
+        settings.set_provider_key("gemini", "")
+        translator = AITranslator(settings=settings)
+        
+        async def _run():
+            # 1. With bypass_fallback=True, missing key must return error
+            err_res = await translator.translate_full("こんにちは", provider="gemini", bypass_fallback=True)
+            self.assertIn("[Lỗi", err_res)
+            
+            # 2. Add to cache
+            translator._cache[("こんにちは", "ja", "vi")] = "Xin chào (cached)"
+            
+            # 3. Subsequent translation hits cache directly (0 token)
+            cached_res = await translator.translate_full("こんにちは", provider="gemini", bypass_fallback=False)
+            self.assertEqual(cached_res, "Xin chào (cached)")
+
+        asyncio.run(_run())
+
 if __name__ == "__main__":
     unittest.main()

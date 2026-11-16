@@ -52,12 +52,24 @@ class OCREngine:
             return True
 
     def capture_screen_region(self) -> Optional[Image.Image]:
-        """Capture the defined screen region as a PIL Image."""
+        """Capture the defined screen region as a PIL Image (fast memory capture with fallback)."""
         if not self.region:
             return None
         x, y, w, h = self.region
         if w <= 0 or h <= 0:
             return None
+        
+        # 1. Fast DirectX/Memory capture via mss (1-2ms)
+        try:
+            import mss
+            with mss.mss() as sct:
+                monitor = {"top": y, "left": x, "width": w, "height": h}
+                sct_img = sct.grab(monitor)
+                return Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
+        except Exception:
+            pass
+
+        # 2. Robust fallback via PIL ImageGrab
         try:
             bbox = (x, y, x + w, y + h)
             return ImageGrab.grab(bbox=bbox)
